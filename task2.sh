@@ -24,8 +24,8 @@ convert_to_json() {
         awk '
         {
             status = ($1 == "ok") ? "true" : "false"
-            name = $3
-            for (i = 4; i <= NF - 2; i++) name = name " " $i
+            name = ""
+            for (i = 3; i <= NF - 2; i++) name = name $i (i == NF - 2 ? "" : " ")
             duration = $(NF)
             printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},", name, status, duration
         }' | sed 's/,$//')
