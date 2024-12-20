@@ -12,12 +12,18 @@ convert_to_json() {
         return 1
     fi
 
+    # Debug: Pokaż zawartość pliku wejściowego
+    printf "DEBUG: Input file content:\n"
+    cat "$input_file"
+    printf "\n"
+
     local test_name
     test_name=$(grep -oP '(?<=\[ ).*(?= \])' "$input_file")
     if [[ -z "$test_name" ]]; then
         printf "Error: Unable to extract test name.\n" >&2
         return 1
     fi
+    printf "DEBUG: Extracted test name: %s\n" "$test_name"
 
     local tests_json
     tests_json=$(grep -P '^(ok|not ok)' "$input_file" | \
@@ -41,6 +47,8 @@ convert_to_json() {
         printf "Error: Unable to extract test details.\n" >&2
         return 1
     fi
+    # Debug: Pokaż wygenerowane JSON dla testów
+    printf "DEBUG: Generated tests JSON:\n%s\n\n" "$tests_json"
 
     local summary_line
     summary_line=$(grep -oP '\d+ \(.+?tests passed, .+?tests failed.+?$' "$input_file")
@@ -48,6 +56,7 @@ convert_to_json() {
         printf "Error: Unable to extract summary.\n" >&2
         return 1
     fi
+    printf "DEBUG: Extracted summary line: %s\n" "$summary_line"
 
     local success failed rating duration
     success=$(echo "$summary_line" | grep -oP '^\d+(?= \(of)')
@@ -59,6 +68,9 @@ convert_to_json() {
         printf "Error: Summary extraction failed.\n" >&2
         return 1
     fi
+    # Debug: Pokaż wyodrębnione dane podsumowania
+    printf "DEBUG: Summary - Success: %s, Failed: %s, Rating: %s, Duration: %s\n" \
+        "$success" "$failed" "$rating" "$duration"
 
     # Creating JSON
     {
