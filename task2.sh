@@ -28,7 +28,7 @@ convert_to_json() {
             name = $3
             for (i = 4; i <= NF - 2; i++) name = name " " $i
             duration = $(NF)
-            gsub(/\(the same as above, bats way\)/, "", name)  # Remove '(the same as above, bats way)'
+            gsub(/\(the same as above, bats way\)/, "", name)
             printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, duration
         }
         END { print "]" }
