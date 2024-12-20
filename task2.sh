@@ -22,13 +22,16 @@ convert_to_json() {
     local tests_json
     tests_json=$(grep -P '^(ok|not ok)' "$input_file" | \
         awk '
+        BEGIN { print "[" }
         {
             status = ($1 == "ok") ? "true" : "false"
             name = ""
             for (i = 3; i <= NF - 2; i++) name = name $i (i == NF - 2 ? "" : " ")
             duration = $(NF)
-            printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},", name, status, duration
-        }' | sed 's/,$//')
+            printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, duration
+        }
+        END { print "]" }
+        ' | sed ':a;N;$!ba;s/,\n]/\n]/')
 
     if [[ -z "$tests_json" ]]; then
         printf "Error: Unable to extract test details.\n" >&2
@@ -53,11 +56,11 @@ convert_to_json() {
         return 1
     fi
 
-    # Tworzenie JSON bez `jq`
+    # Tworzenie JSON
     {
         printf '{\n'
         printf '  "testName": "%s",\n' "$test_name"
-        printf '  "tests": [\n%s\n  ],\n' "$tests_json"
+        printf '  "tests": %s,\n' "$tests_json"
         printf '  "summary": {\n'
         printf '    "success": %s,\n' "$success"
         printf '    "failed": %s,\n' "$failed"
