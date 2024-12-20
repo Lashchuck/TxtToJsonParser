@@ -31,7 +31,7 @@ convert_to_json() {
             gsub(/^\s*[0-9]+\s/, "", name)  # Remove leading test numbers
             gsub(/^ /, "", name)            # Trim leading space
             gsub(/, $/, "", name)           # Remove trailing comma
-            printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $NF
+            printf "{name:\"%s\",status:%s,\"duration\":\"%s\"},\n", name, status, $NF
         }
         END { print "]" }
         ' | sed ':a;N;$!ba;s/,\n]/\n]/')
