@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Exit if path to output.txt file not provided as argument
 if [ $# -lt 1 ]
 then
     echo "Usage: ./task2.sh /path/to/output.txt"
@@ -23,6 +22,8 @@ tests_started=0
 
 (cat $file; echo;) | while read -r line; do
 
+    echo "DEBUG: Processing line: $line" >&2  # Debug
+
     # line startswith square bracket ([),
     # extract testName from this line
     if [[ $line =~ ^\[ ]]
@@ -37,7 +38,7 @@ tests_started=0
             echo "{"
             echo "    \"testName\": \"$test_name\","
         else
-            echo "Invalid format" 1>&2
+            echo "Invalid format in test name line: $line" 1>&2
             exit 1
         fi
         continue
@@ -88,8 +89,7 @@ tests_started=0
                 echo "        },"
             fi
         else
-            echo $line
-            echo "Invalid format" 1>&2
+            echo "Invalid format in test line: $line" 1>&2
             exit 1
         fi
         continue
@@ -119,7 +119,7 @@ tests_started=0
         break
 
     else
-        echo "Invalid format" 1>&2
+        echo "Invalid format in summary line: $line" 1>&2
         exit 1
     fi
 done > $path/output.json
