@@ -20,11 +20,9 @@ fi
 path=$(dirname "$file")
 
 tests_started=0
+output_json=""
 
 printf "Processing file: %s\n" "$file"
-
-# Przechowuj JSON w zmiennej, aby zapisać czysty wynik do pliku
-output_json=""
 
 (cat "$file"; echo;) | while read -r line; do
     printf "DEBUG: Processing line: %s\n" "$line"
@@ -114,5 +112,17 @@ output_json=""
     fi
 done
 
-# Zapisz czysty JSON do pliku
+# Debug: Wyświetl końcowy JSON przed zapisaniem
+printf "DEBUG: Final JSON content before saving to file:\n%s\n" "$output_json"
+
+# Zapisz JSON do pliku
 printf "%s" "$output_json" > "$path/output.json"
+
+if [ -f "$path/output.json" ]; then
+    printf "DEBUG: JSON file successfully created at: %s/output.json\n" "$path"
+else
+    printf "DEBUG: Failed to create JSON file at: %s/output.json\n" "$path"
+    exit 1
+fi
+
+printf "DEBUG: Script completed successfully\n"
