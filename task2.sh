@@ -25,14 +25,15 @@ convert_to_json() {
         BEGIN { print "[" }
         {
             status = ($1 == "ok") ? "true" : "false"
-            name = $3
-            for (i = 4; i <= NF - 2; i++) name = name " " $i
-            name = name " " $(NF - 1) #
-            gsub(/, $/, "", name)
-            printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $NF
+            name = ""
+            for (i = 3; i <= NF - 2; i++) name = name " " $i
+            gsub(/\(the same as above, bats way\)/, "", name)
+            gsub(/, $/, "", name) # Remove trailing comma
+            gsub(/^ /, "", name)  # Remove leading space
+            printf "{\"name\":%s,\"status\":%s,\"duration\":\"%s\"},\n", "\"" name "\"", status, $NF
         }
         END { print "]" }
-        ' | sed ':a;N;$!ba;s/,\n]/\n]/')
+        ' | sed ':a;N;$!ba;s/,\n]/\n]/' | sed 's/\"name\":\(.*\),\"status\":/name:\1,status:/g')
 
     if [[ -z "$tests_json" ]]; then
         printf "Error: Unable to extract test details.\n" >&2
