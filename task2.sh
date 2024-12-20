@@ -62,8 +62,10 @@ tests_started=0
 
     if [ $tests_started -eq 1 ]
         then
-            test_regex='^(not ok|ok)[[:space:]]+([0-9]+)[[:space:]]+(.*?)[[:space:]]*,[[:space:]]*([0-9ms]+)$'
-            echo "DEBUG: Test line: $line" >&2
+            # Normalize spaces in the line
+            line=$(echo "$line" | tr -s ' ')
+            test_regex='^(not ok|ok)[[:space:]]+([0-9]+)[[:space:]]+(.*?)[[:space:]]*,[[:space:]]*([0-9]+ms)$'
+            echo "DEBUG: Test line (normalized): $line" >&2
             echo "DEBUG: Regex: $test_regex" >&2
             if [[ $line =~ $test_regex ]]
             then
@@ -90,7 +92,7 @@ tests_started=0
                     echo "        },"
                 fi
             else
-                echo "DEBUG: Line does not match regex" >&2
+                echo "DEBUG: Line does not match regex after normalization" >&2
                 echo "Invalid format in test line: $line" 1>&2
                 exit 1
             fi
