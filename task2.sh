@@ -27,6 +27,7 @@ convert_to_json() {
 
     local tests_json
     tests_json=$(grep -P '^(ok|not ok)' "$input_file" | \
+        sed -E 's/^[^0-9]*[0-9]+\s+//' | \
         awk '
         BEGIN { print "[" }
         {
@@ -34,7 +35,7 @@ convert_to_json() {
             name = ""
             for (i = 3; i <= NF - 2; i++) name = name " " $i
             name = name " " $(NF - 1)  # Add the second last field for the full name
-            name = gensub(/^[0-9]+\s+/, "", 1, name)
+            gsub(/,\s*$/, "", name)
             gsub(/,\s*$/, "", name)       # Remove trailing commas after name
             gsub(/^ /, "", name)          # Trim leading spaces
             printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $NF
