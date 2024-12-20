@@ -34,10 +34,9 @@ convert_to_json() {
             name = ""
             for (i = 3; i <= NF - 2; i++) name = name " " $i
             name = name " " $(NF - 1)  # Add the second last field for the full name
-            gsub(/^\s*[0-9]+\s/, "", name)  # Remove leading test numbers
-            gsub(/^ /, "", name)            # Trim leading space
-            gsub(/, $/, "", name)           # Remove trailing comma
-            gsub(/,$/, "", name)            # Remove comma before ending quote
+            gsub(/^[0-9]+\s+/, "", name)  # Remove leading numbers and spaces
+            gsub(/^ /, "", name)          # Trim leading space
+            gsub(/, $/, "", name)         # Remove trailing comma
             printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $NF
         }
         END { print "]" }
@@ -85,6 +84,16 @@ convert_to_json() {
         printf '  }\n'
         printf '}\n'
     } > "$output_file"
+
+    # Wymuś spójność formatowania JSON
+    if command -v jq >/dev/null 2>&1; then
+        cat "$output_file" | jq --sort-keys . > tmp.json && mv tmp.json "$output_file"
+    fi
+
+    # Debug: Pokaż ostateczny JSON
+    printf "DEBUG: Final output JSON:\n"
+    cat "$output_file"
+    printf "\n"
 
     printf "JSON output written to '%s'.\n" "$output_file"
 }
