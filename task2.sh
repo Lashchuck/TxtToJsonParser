@@ -1,106 +1,125 @@
 #!/bin/bash
 
-set -o pipefail
-set -e
+# Exit if path to output.txt file not provided as argument
+if [ $# -lt 1 ]
+then
+    echo "Usage: ./task2.sh /path/to/output.txt"
+    exit 0
+fi
 
-convert_to_json() {
-    local input_file=$1
-    local output_file="output.json"
+file=$1
 
-    if [[ ! -f "$input_file" ]]; then
-        printf "Error: Input file '%s' not found.\n" "$input_file" >&2
-        return 1
+# Exit if provided file doesn't exist
+if [ ! -f $file ]
+then
+    echo "File $file doesn't exist"
+    exit 1
+fi
+
+# Extract directory from file
+path=$(dirname $file)
+
+tests_started=0
+
+(cat $file; echo;) | while read -r line; do
+
+    # line startswith square bracket ([),
+    # extract testName from this line
+    if [[ $line =~ ^\[ ]]
+    then
+        test_name_regexp='^\[ ([A-Za-z ]+) \], ([0-9]+)\.\.([0-9]+) ([a-zA-Z]+)'
+        if [[ $line =~ $test_name_regexp ]]
+        then
+            test_name=${BASH_REMATCH[1]}
+            first_test_id=${BASH_REMATCH[2]}
+            last_test_id=${BASH_REMATCH[3]}
+            test_cases_name=${BASH_REMATCH[4]}
+            echo "{"
+            echo "    \"testName\": \"$test_name\","
+        else
+            echo "Invalid format" 1>&2
+            exit 1
+        fi
+        continue
     fi
 
-    # Debug: Pokaż zawartość pliku wejściowego
-    printf "DEBUG: Input file content:\n"
-    cat "$input_file"
-    printf "\n"
-
-    local test_name
-    test_name=$(grep -oP '(?<=\[ ).*(?= \])' "$input_file")
-    if [[ -z "$test_name" ]]; then
-        printf "Error: Unable to extract test name.\n" >&2
-        return 1
-    fi
-    printf "DEBUG: Extracted test name: %s\n" "$test_name"
-
-    local tests_json
-    tests_json=$(grep -P '^(ok|not ok)' "$input_file" | \
-        awk '
-        BEGIN { print "[" }
-        {
-            status = ($1 == "ok") ? "true" : "false"
-            name = ""
-            for (i = 3; i <= NF - 2; i++) name = name " " $i
-            name = name " " $(NF - 1)  # Add the second last field for the full name
-            gsub(/^\s*[0-9]+\s/, "", name)
-            gsub(/,\s*$/, "", name)       # Remove trailing commas after name
-            gsub(/^ /, "", name)          # Trim leading spaces
-            printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $NF
-        }
-        END { print "]" }
-        ' | sed ':a;N;$!ba;s/,\n]/\n]/')
-
-    if [[ -z "$tests_json" ]]; then
-        printf "Error: Unable to extract test details.\n" >&2
-        return 1
-    fi
-    # Debug: Pokaż wygenerowane JSON dla testów
-    printf "DEBUG: Generated tests JSON:\n%s\n\n" "$tests_json"
-
-    local summary_line
-    summary_line=$(grep -oP '\d+ \(.+?tests passed, .+?tests failed.+?$' "$input_file")
-    if [[ -z "$summary_line" ]]; then
-        printf "Error: Unable to extract summary.\n" >&2
-        return 1
-    fi
-    printf "DEBUG: Extracted summary line: %s\n" "$summary_line"
-
-    local success failed rating duration
-    success=$(echo "$summary_line" | grep -oP '^\d+(?= \(of)')
-    failed=$(echo "$summary_line" | grep -oP '(?<=, )\d+(?= tests failed)')
-    rating=$(echo "$summary_line" | grep -oP '\d+(\.\d+)?(?=%)')
-    duration=$(echo "$summary_line" | grep -oP '(?<=spent )\d+ms')
-
-    if [[ -z "$success" || -z "$failed" || -z "$rating" || -z "$duration" ]]; then
-        printf "Error: Summary extraction failed.\n" >&2
-        return 1
-    fi
-    # Debug: Pokaż wyodrębnione dane podsumowania
-    printf "DEBUG: Summary - Success: %s, Failed: %s, Rating: %s, Duration: %s\n" \
-        "$success" "$failed" "$rating" "$duration"
-
-    # Creating JSON
-    {
-        printf '{\n'
-        printf '  "testName": "%s",\n' "$test_name"
-        printf '  "tests": %s,\n' "$tests_json"
-        printf '  "summary": {\n'
-        printf '    "success": %s,\n' "$success"
-        printf '    "failed": %s,\n' "$failed"
-        printf '    "rating": %s,\n' "$rating"
-        printf '    "duration": "%s"\n' "$duration"
-        printf '  }\n'
-        printf '}\n'
-    } > "$output_file"
-
-    # Debug: Pokaż ostateczny JSON
-    printf "DEBUG: Final output JSON:\n"
-    cat "$output_file"
-    printf "\n"
-
-    printf "JSON output written to '%s'.\n" "$output_file"
-}
-
-main() {
-    if [[ $# -ne 1 ]]; then
-        printf "Usage: %s <path_to_output.txt>\n" "$(basename "$0")" >&2
-        return 1
+    # line containing dash separator
+    if [[ $line =~ ^-+ ]]
+    then
+        # first separator: tests started
+        if [ $tests_started -eq 0 ]
+        then
+            tests_started=1
+            echo "    \"$test_cases_name\": ["
+        else
+            # second separator: tests finished
+            tests_started=0
+            echo "    ],"
+        fi
+        continue
     fi
 
-    local input_file=$1
-    convert_to_json "$input_file"
-}
+    # process test lines:
+    if [ $tests_started -eq 1 ]
+    then
+        test_regex='^(not ok|ok) *([0-9]+) * (.*), *([0-9ms]+)$'
+        if [[ $line =~ $test_regex ]]
+        then
+            status=${BASH_REMATCH[1]}
+            id=${BASH_REMATCH[2]}
+            name=${BASH_REMATCH[3]}
+            duration=${BASH_REMATCH[4]}
+            if [[ $status == "ok" ]]
+            then
+                status=true
+            else
+                status=false
+            fi
+            echo "        {"
+            echo "            \"name\": \"$name\","
+            echo "            \"status\": $status,"
+            echo "            \"duration\": \"$duration\""
 
-main "$@"
+            # append comma to the end if it's not the last test
+            if [ $id -eq $last_test_id ]
+            then
+                echo "        }"
+            else
+                echo "        },"
+            fi
+        else
+            echo $line
+            echo "Invalid format" 1>&2
+            exit 1
+        fi
+        continue
+    fi
+
+    # tests_finished: getting summary
+    summary_regex='([0-9]+) \(of ([0-9]+)\) tests passed, ([0-9]+) tests failed, rated as ([0-9.]+)%, spent ([0-9msh]+)'
+    if [[ $line =~ $summary_regex ]]
+    then
+        success=${BASH_REMATCH[1]}
+        total=${BASH_REMATCH[2]}
+        failed=${BASH_REMATCH[3]}
+        rating=${BASH_REMATCH[4]}
+        duration=${BASH_REMATCH[5]}
+
+        echo "    \"summary\": {"
+        echo "        \"success\": $success,"
+        echo "        \"failed\": $failed,"
+        echo "        \"total\": $total,"
+        echo "        \"rating\": $rating,"
+        echo "        \"duration\": \"$duration\""
+        echo "    }"
+        echo "}"
+
+        # tests all finished, we also got the summary
+        # we can now break the loop
+        break
+
+    else
+        echo "Invalid format" 1>&2
+        exit 1
+    fi
+done > $path/output.json
