@@ -28,7 +28,7 @@ convert_to_json() {
             name = $3
             # Remove numbers from the name
             gsub(/[0-9]+/, "", name)
-            gsub(/\(the same as above, bats way\)/, "", name)  # Remove '(the same as above, bats way)'
+            gsub(/\(the same as above, bats way\)/, "", name)
             printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $(NF)
         }
         END { print "]" }
