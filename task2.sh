@@ -8,13 +8,11 @@ convert_to_json() {
     local jq_path="./jq"
     local output_file="output.json"
 
-    # Verify input file existence
     if [[ ! -f "$input_file" ]]; then
         printf "Error: Input file '%s' not found.\n" "$input_file" >&2
         return 1
     fi
 
-    # Read and parse data
     local test_name
     test_name=$(grep -oP '(?<=\[ ).*(?= \])' "$input_file")
     if [[ -z "$test_name" ]]; then
@@ -22,7 +20,6 @@ convert_to_json() {
         return 1
     fi
 
-    # Extract individual tests
     local tests_json
     tests_json=$(grep -P '^(ok|not ok)' "$input_file" | \
         awk '
@@ -39,7 +36,6 @@ convert_to_json() {
         return 1
     fi
 
-    # Extract summary
     local summary_line
     summary_line=$(grep -oP '^\d+ \(.+?tests passed, .+?tests failed.+?$' "$input_file")
     if [[ -z "$summary_line" ]]; then
@@ -58,7 +54,6 @@ convert_to_json() {
         return 1
     fi
 
-    # Construct JSON using jq for better formatting
     printf '{"testName":"%s","tests":[%s],"summary":{"success":%s,"failed":%s,"rating":%s,"duration":"%s"}}\n' \
         "$test_name" "$tests_json" "$success" "$failed" "$rating" "$duration" | \
         "$jq_path" '.' > "$output_file"
