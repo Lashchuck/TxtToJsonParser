@@ -5,7 +5,6 @@ set -e
 
 convert_to_json() {
     local input_file=$1
-    local jq_path="./jq"
     local output_file="output.json"
 
     if [[ ! -f "$input_file" ]]; then
@@ -54,9 +53,19 @@ convert_to_json() {
         return 1
     fi
 
-    printf '{"testName":"%s","tests":[%s],"summary":{"success":%s,"failed":%s,"rating":%s,"duration":"%s"}}\n' \
-        "$test_name" "$tests_json" "$success" "$failed" "$rating" "$duration" | \
-        "$jq_path" '.' > "$output_file"
+    # Tworzenie JSON bez `jq`
+    {
+        printf '{\n'
+        printf '  "testName": "%s",\n' "$test_name"
+        printf '  "tests": [\n%s\n  ],\n' "$tests_json"
+        printf '  "summary": {\n'
+        printf '    "success": %s,\n' "$success"
+        printf '    "failed": %s,\n' "$failed"
+        printf '    "rating": %s,\n' "$rating"
+        printf '    "duration": "%s"\n' "$duration"
+        printf '  }\n'
+        printf '}\n'
+    } > "$output_file"
 
     printf "JSON output written to '%s'.\n" "$output_file"
 }
