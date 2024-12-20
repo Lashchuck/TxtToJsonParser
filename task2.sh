@@ -60,40 +60,39 @@ tests_started=0
         continue
     fi
 
-    # process test lines:
     if [ $tests_started -eq 1 ]
-    then
-        test_regex='^(not ok|ok) *([0-9]+) * (.*), *([0-9ms]+)$'
-        if [[ $line =~ $test_regex ]]
         then
-            status=${BASH_REMATCH[1]}
-            id=${BASH_REMATCH[2]}
-            name=${BASH_REMATCH[3]}
-            duration=${BASH_REMATCH[4]}
-            if [[ $status == "ok" ]]
+            test_regex='^(not ok|ok)[[:space:]]+([0-9]+)[[:space:]]+(.*),[[:space:]]*([0-9ms]+)$'
+            if [[ $line =~ $test_regex ]]
             then
-                status=true
-            else
-                status=false
-            fi
-            echo "        {"
-            echo "            \"name\": \"$name\","
-            echo "            \"status\": $status,"
-            echo "            \"duration\": \"$duration\""
+                status=${BASH_REMATCH[1]}
+                id=${BASH_REMATCH[2]}
+                name=${BASH_REMATCH[3]}
+                duration=${BASH_REMATCH[4]}
+                if [[ $status == "ok" ]]
+                then
+                    status=true
+                else
+                    status=false
+                fi
+                echo "        {"
+                echo "            \"name\": \"$name\","
+                echo "            \"status\": $status,"
+                echo "            \"duration\": \"$duration\""
 
-            # append comma to the end if it's not the last test
-            if [ $id -eq $last_test_id ]
-            then
-                echo "        }"
+                # append comma to the end if it's not the last test
+                if [ $id -eq $last_test_id ]
+                then
+                    echo "        }"
+                else
+                    echo "        },"
+                fi
             else
-                echo "        },"
+                echo "Invalid format in test line: $line" 1>&2
+                exit 1
             fi
-        else
-            echo "Invalid format in test line: $line" 1>&2
-            exit 1
+            continue
         fi
-        continue
-    fi
 
     # tests_finished: getting summary
     summary_regex='([0-9]+) \(of ([0-9]+)\) tests passed, ([0-9]+) tests failed, rated as ([0-9.]+)%, spent ([0-9msh]+)'
