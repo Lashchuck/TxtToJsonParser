@@ -85,14 +85,6 @@ convert_to_json() {
         printf '}\n'
     } > "$output_file"
 
-    if command -v jq > /dev/null 2>&1; then
-            mv "$output_file" "$output_file.tmp"
-            jq --sort-keys . "$output_file.tmp" > "$output_file"
-            rm "$output_file.tmp"
-        else
-            printf "Warning: jq not found. JSON may not be properly formatted.\n" >&2
-        fi
-
     # Debug: Pokaż ostateczny JSON
     printf "DEBUG: Final output JSON:\n"
     cat "$output_file"
