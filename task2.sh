@@ -28,13 +28,13 @@ convert_to_json() {
             name = ""
             for (i = 3; i <= NF - 2; i++) name = name " " $i
             name = name " " $(NF - 1)  # Add the second last field for the full name
-            gsub(/^\s*[0-9]+\s/, "", name)  # Remove leading test numbers
             gsub(/^ /, "", name)            # Trim leading space
-            gsub(/, $/, "", name)           # Remove trailing comma in name
+            gsub(/, $/, "", name)           # Remove trailing comma
+            gsub(/,$/, "", name)            # Remove comma before ending quote
             printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $NF
         }
         END { print "]" }
-        ' | sed -E 's/\),"/\)","/g' | sed ':a;N;$!ba;s/,\n]/\n]/')
+        ' | sed ':a;N;$!ba;s/,\n]/\n]/')
 
     if [[ -z "$tests_json" ]]; then
         printf "Error: Unable to extract test details.\n" >&2
