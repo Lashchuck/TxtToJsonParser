@@ -25,9 +25,10 @@ convert_to_json() {
         BEGIN { print "[" }
         {
             status = ($1 == "ok") ? "true" : "false"
-            name = ""
-            for (i = 3; i <= NF - 2; i++) name = name $i (i == NF - 2 ? "" : " ")
+            name = $3
+            for (i = 4; i <= NF - 2; i++) name = name " " $i
             duration = $(NF)
+            gsub(/\(the same as above, bats way\)/, "", name)  # Remove '(the same as above, bats way)'
             printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, duration
         }
         END { print "]" }
