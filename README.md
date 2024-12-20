@@ -1,58 +1,78 @@
-# DevOps-Essentials: Final Task 2
+# Txt to Json parser
+Repository provides a parser that converts output.txt into a structured JSON format (output.json).
 
-> **Please use branch `task2` for this task that already exist in your forked repository after you has been started task**
-
-## Bash Task 2
-
-Company DEF decided to use testing tool for their employees. But current tool has no json output that can be using for later data processing.
-
-1. Need to parce output.txt to convert into output.json:
-
-## Example:
-
-### this is output.txt:
-```
-[ Asserts Samples ], 1..2 tests
+## Input and Output Examples:
+### Input (```output.txt```):
+```plaintext
+[ Asserts Samples ], 1..7 tests
 -----------------------------------------------------------------------------------
 not ok  1  expecting command finishes successfully (bash way), 7ms
-ok  2  expecting command prints some message (the same as above, bats way), 10ms
+not ok  2  expecting command finishes successfully (the same as above, bats way), 27ms
+ok  3  expecting command fails (the same as above, bats way), 23ms
+ok  4  expecting command prints exact value (bash way), 10ms
+ok  5  expecting command prints exact value (the same as above, bats way), 27ms
+ok  6  expecting command prints some message (bash way), 12ms
+ok  7  expecting command prints some message (the same as above, bats way), 26ms
 -----------------------------------------------------------------------------------
-1 (of 2) tests passed, 1 tests failed, rated as 50%, spent 17ms
+5 (of 7) tests passed, 2 tests failed, rated as 71.43%, spent 136ms
 ```
-
-### should be output.json:
+### Output (```output.json```):
 ```json
 {
- "testName": "Asserts Samples",
- "tests": [
-   {
-     "name": "expecting command finishes successfully (bash way)",
-     "status": false,
-     "duration": "7ms"
-   },
-   {
-     "name": "expecting command prints some message (the same as above, bats way)",
-     "status": true,
-     "duration": "10ms"
-   }
- ],
- "summary": {
-   "success": 1,
-   "failed": 1,
-   "rating": 50,
-   "duration": "17ms"
- }
+    "testName": "Asserts Samples",
+    "tests": [
+        {
+            "name": "expecting command finishes successfully (bash way)",
+            "status": false,
+            "duration": "7ms"
+        },
+        {
+            "name": "expecting command finishes successfully (the same as above, bats way)",
+            "status": false,
+            "duration": "27ms"
+        },
+        {
+            "name": "expecting command fails (the same as above, bats way)",
+            "status": true,
+            "duration": "23ms"
+        },
+        {
+            "name": "expecting command prints exact value (bash way)",
+            "status": true,
+            "duration": "10ms"
+        },
+        {
+            "name": "expecting command prints exact value (the same as above, bats way)",
+            "status": true,
+            "duration": "27ms"
+        },
+        {
+            "name": "expecting command prints some message (bash way)",
+            "status": true,
+            "duration": "12ms"
+        },
+        {
+            "name": "expecting command prints some message (the same as above, bats way)",
+            "status": true,
+            "duration": "26ms"
+        }
+    ],
+    "summary": {
+        "success": 5,
+        "failed": 2,
+        "rating": 71.43,
+        "duration": "136ms"
+    }
 }
 ```
 
-2) Count of tests can be more than 2
-3) Rating is a number and can be float or int (for example 50.23, 50, 100)
-3) Sripts should has name task2.sh
-4) Path to output.txt file should be as argument to the script.
+## Usage
+**Requirements:** 
+- Bash shell environment.
+- Input file (output.txt) must follow the expected format for proper parsing.
+  
+**Running the script:** 
 
-> # If you need to use additional tools like ```jq``` please use it directly from this repository in your script: ```./jq```
-
-> ## Also you can use some specific tools in this approach
-
-# Definition of done.
-Developed bash script which automatically convert output.txt to json based on the example above.
+```bash
+./task2.sh path/to/output.txt
+```
