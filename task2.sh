@@ -18,110 +18,110 @@ if [ ! -f "$file" ]; then
 fi
 
 path=$(dirname "$file")
+output_file="$path/output.json"
 
 tests_started=0
-output_json=""
 
 printf "Processing file: %s\n" "$file"
 
-(cat "$file"; echo;) | while read -r line; do
-    printf "DEBUG: Processing line: %s\n" "$line"
+# Tworzymy plik JSON
+{
+    printf "{\n"
 
-    if [[ $line =~ ^\[ ]]; then
-        test_name_regexp='^\[ ([A-Za-z ]+) \], ([0-9]+)\.\.([0-9]+) ([a-zA-Z]+)'
-        if [[ $line =~ $test_name_regexp ]]; then
-            test_name=${BASH_REMATCH[1]}
-            first_test_id=${BASH_REMATCH[2]}
-            last_test_id=${BASH_REMATCH[3]}
-            test_cases_name=${BASH_REMATCH[4]}
-            printf "DEBUG: Extracted test name: %s\n" "$test_name"
-            output_json+="{\n"
-            output_json+="    \"testName\": \"$test_name\",\n"
+    (cat "$file"; echo;) | while read -r line; do
+        printf "DEBUG: Processing line: %s\n" "$line"
+
+        if [[ $line =~ ^\[ ]]; then
+            test_name_regexp='^\[ ([A-Za-z ]+) \], ([0-9]+)\.\.([0-9]+) ([a-zA-Z]+)'
+            if [[ $line =~ $test_name_regexp ]]; then
+                test_name=${BASH_REMATCH[1]}
+                first_test_id=${BASH_REMATCH[2]}
+                last_test_id=${BASH_REMATCH[3]}
+                test_cases_name=${BASH_REMATCH[4]}
+                printf "DEBUG: Extracted test name: %s\n" "$test_name"
+                printf "    \"testName\": \"%s\",\n" "$test_name"
+            else
+                printf "Invalid format in test name line: %s\n" "$line"
+                exit 1
+            fi
+            continue
+        fi
+
+        if [[ $line =~ ^-+ ]]; then
+            if [ $tests_started -eq 0 ]; then
+                tests_started=1
+                printf "DEBUG: Starting test case parsing.\n"
+                printf "    \"tests\": [\n"
+            else
+                tests_started=0
+                printf "DEBUG: Finished test case parsing.\n"
+                printf "    ],\n"
+            fi
+            continue
+        fi
+
+        if [ $tests_started -eq 1 ]; then
+            line=$(echo "$line" | tr -s ' ')
+            test_regex='^(not ok|ok)[[:space:]]+([0-9]+)[[:space:]]+(.*)[[:space:]]*,[[:space:]]*([0-9]+ms)$'
+            printf "DEBUG: Test line (normalized): %s\n" "$line"
+            printf "DEBUG: Regex: %s\n" "$test_regex"
+            if [[ $line =~ $test_regex ]]; then
+                status=${BASH_REMATCH[1]}
+                id=${BASH_REMATCH[2]}
+                name=${BASH_REMATCH[3]}
+                duration=${BASH_REMATCH[4]}
+                if [[ $status == "ok" ]]; then
+                    status=true
+                else
+                    status=false
+                fi
+                printf "DEBUG: Processing test case: Name=\"%s\", Status=\"%s\", Duration=\"%s\"\n" "$name" "$status" "$duration"
+                printf "        {\n"
+                printf "            \"name\": \"%s\",\n" "$name"
+                printf "            \"status\": %s,\n" "$status"
+                printf "            \"duration\": \"%s\"\n" "$duration"
+                if [ $id -eq $last_test_id ]; then
+                    printf "        }\n"
+                else
+                    printf "        },\n"
+                fi
+            else
+                printf "DEBUG: Line does not match regex after normalization\n"
+                printf "Invalid format in test line: %s\n" "$line"
+                exit 1
+            fi
+            continue
+        fi
+
+        summary_regex='([0-9]+) \(of ([0-9]+)\) tests passed, ([0-9]+) tests failed, rated as ([0-9.]+)%, spent ([0-9msh]+)'
+        if [[ $line =~ $summary_regex ]]; then
+            success=${BASH_REMATCH[1]}
+            total=${BASH_REMATCH[2]}
+            failed=${BASH_REMATCH[3]}
+            rating=${BASH_REMATCH[4]}
+            duration=${BASH_REMATCH[5]}
+            printf "DEBUG: Generated summary: Success=%s, Failed=%s, Rating=%s%%, Duration=%s\n" "$success" "$failed" "$rating" "$duration"
+            printf "    \"summary\": {\n"
+            printf "        \"success\": %s,\n" "$success"
+            printf "        \"failed\": %s,\n" "$failed"
+            printf "        \"rating\": %s,\n" "$rating"
+            printf "        \"duration\": \"%s\"\n" "$duration"
+            printf "    }\n"
+            printf "}\n"
+            break
         else
-            printf "Invalid format in test name line: %s\n" "$line"
+            printf "Invalid format in summary line: %s\n" "$line"
             exit 1
         fi
-        continue
-    fi
+    done
 
-    if [[ $line =~ ^-+ ]]; then
-        if [ $tests_started -eq 0 ]; then
-            tests_started=1
-            printf "DEBUG: Starting test case parsing.\n"
-            output_json+="    \"tests\": [\n"
-        else
-            tests_started=0
-            printf "DEBUG: Finished test case parsing.\n"
-            output_json+="    ],\n"
-        fi
-        continue
-    fi
+} > "$output_file"
 
-    if [ $tests_started -eq 1 ]; then
-        line=$(echo "$line" | tr -s ' ')
-        test_regex='^(not ok|ok)[[:space:]]+([0-9]+)[[:space:]]+(.*)[[:space:]]*,[[:space:]]*([0-9]+ms)$'
-        printf "DEBUG: Test line (normalized): %s\n" "$line"
-        printf "DEBUG: Regex: %s\n" "$test_regex"
-        if [[ $line =~ $test_regex ]]; then
-            status=${BASH_REMATCH[1]}
-            id=${BASH_REMATCH[2]}
-            name=${BASH_REMATCH[3]}
-            duration=${BASH_REMATCH[4]}
-            if [[ $status == "ok" ]]; then
-                status=true
-            else
-                status=false
-            fi
-            printf "DEBUG: Processing test case: Name=\"%s\", Status=\"%s\", Duration=\"%s\"\n" "$name" "$status" "$duration"
-            output_json+="        {\n"
-            output_json+="            \"name\": \"$name\",\n"
-            output_json+="            \"status\": $status,\n"
-            output_json+="            \"duration\": \"$duration\"\n"
-            if [ $id -eq $last_test_id ]; then
-                output_json+="        }\n"
-            else
-                output_json+="        },\n"
-            fi
-        else
-            printf "DEBUG: Line does not match regex after normalization\n"
-            printf "Invalid format in test line: %s\n" "$line"
-            exit 1
-        fi
-        continue
-    fi
-
-    summary_regex='([0-9]+) \(of ([0-9]+)\) tests passed, ([0-9]+) tests failed, rated as ([0-9.]+)%, spent ([0-9msh]+)'
-    if [[ $line =~ $summary_regex ]]; then
-        success=${BASH_REMATCH[1]}
-        total=${BASH_REMATCH[2]}
-        failed=${BASH_REMATCH[3]}
-        rating=${BASH_REMATCH[4]}
-        duration=${BASH_REMATCH[5]}
-        printf "DEBUG: Generated summary: Success=%s, Failed=%s, Rating=%s%%, Duration=%s\n" "$success" "$failed" "$rating" "$duration"
-        output_json+="    \"summary\": {\n"
-        output_json+="        \"success\": $success,\n"
-        output_json+="        \"failed\": $failed,\n"
-        output_json+="        \"rating\": $rating,\n"
-        output_json+="        \"duration\": \"$duration\"\n"
-        output_json+="    }\n"
-        output_json+="}\n"
-        break
-    else
-        printf "Invalid format in summary line: %s\n" "$line"
-        exit 1
-    fi
-done
-
-# Debug: Wyświetl końcowy JSON przed zapisaniem
-printf "DEBUG: Final JSON content before saving to file:\n%s\n" "$output_json"
-
-# Zapisz JSON do pliku
-printf "%s" "$output_json" > "$path/output.json"
-
-if [ -f "$path/output.json" ]; then
-    printf "DEBUG: JSON file successfully created at: %s/output.json\n" "$path"
+# Sprawdzenie, czy plik został utworzony
+if [ -f "$output_file" ]; then
+    printf "DEBUG: JSON file successfully created at: %s\n" "$output_file"
 else
-    printf "DEBUG: Failed to create JSON file at: %s/output.json\n" "$path"
+    printf "DEBUG: Failed to create JSON file at: %s\n" "$output_file"
     exit 1
 fi
 
