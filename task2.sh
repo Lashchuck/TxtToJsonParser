@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "DEBUG: Script started" >&2
+
 if [ $# -lt 1 ]
 then
     echo "Usage: ./task2.sh /path/to/output.txt"
@@ -18,11 +20,11 @@ path=$(dirname $file)
 
 tests_started=0
 
-echo "Processing file: $file"
+echo "Processing file: $file" >&2
 
 (cat $file; echo;) | while read -r line; do
 
-    echo "DEBUG: Processing line: $line"
+    echo "DEBUG: Processing line: $line" >&2  # Log przetwarzania linii
 
     if [[ $line =~ ^\[ ]]
     then
@@ -33,11 +35,11 @@ echo "Processing file: $file"
             first_test_id=${BASH_REMATCH[2]}
             last_test_id=${BASH_REMATCH[3]}
             test_cases_name=${BASH_REMATCH[4]}
-            echo "Extracted test name: $test_name"
+            echo "Extracted test name: $test_name" >&2
             echo "{"
             echo "    \"testName\": \"$test_name\","
         else
-            echo "Invalid format in test name line: $line"
+            echo "Invalid format in test name line: $line" >&2
             exit 1
         fi
         continue
@@ -60,8 +62,8 @@ echo "Processing file: $file"
     then
         line=$(echo "$line" | tr -s ' ')
         test_regex='^(not ok|ok)[[:space:]]+([0-9]+)[[:space:]]+(.*)[[:space:]]*,[[:space:]]*([0-9]+ms)$'
-        echo "DEBUG: Test line (normalized): $line"
-        echo "DEBUG: Regex: $test_regex"
+        echo "DEBUG: Test line (normalized): $line" >&2
+        echo "DEBUG: Regex: $test_regex" >&2
         if [[ $line =~ $test_regex ]]
         then
             status=${BASH_REMATCH[1]}
@@ -74,7 +76,7 @@ echo "Processing file: $file"
             else
                 status=false
             fi
-            echo "Processing test case: Name=\"$name\", Status=\"$status\", Duration=\"$duration\""
+            echo "Processing test case: Name=\"$name\", Status=\"$status\", Duration=\"$duration\"" >&2
             echo "        {"
             echo "            \"name\": \"$name\","
             echo "            \"status\": $status,"
@@ -87,8 +89,8 @@ echo "Processing file: $file"
                 echo "        },"
             fi
         else
-            echo "DEBUG: Line does not match regex after normalization"
-            echo "Invalid format in test line: $line"
+            echo "DEBUG: Line does not match regex after normalization" >&2
+            echo "Invalid format in test line: $line" >&2
             exit 1
         fi
         continue
@@ -102,7 +104,7 @@ echo "Processing file: $file"
         failed=${BASH_REMATCH[3]}
         rating=${BASH_REMATCH[4]}
         duration=${BASH_REMATCH[5]}
-        echo "Generated summary: Success=$success, Failed=$failed, Rating=$rating%, Duration=$duration"
+        echo "Generated summary: Success=$success, Failed=$failed, Rating=$rating%, Duration=$duration" >&2
         echo "    \"summary\": {"
         echo "        \"success\": $success,"
         echo "        \"failed\": $failed,"
@@ -114,7 +116,9 @@ echo "Processing file: $file"
         break
 
     else
-        echo "Invalid format in summary line: $line"
+        echo "Invalid format in summary line: $line" >&2
         exit 1
     fi
 done > $path/output.json
+
+echo "DEBUG: Script completed successfully" >&2
