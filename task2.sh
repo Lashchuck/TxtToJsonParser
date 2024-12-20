@@ -8,14 +8,12 @@ fi
 
 file=$1
 
-# Exit if provided file doesn't exist
 if [ ! -f $file ]
 then
     echo "File $file doesn't exist"
     exit 1
 fi
 
-# Extract directory from file
 path=$(dirname $file)
 
 tests_started=0
@@ -24,8 +22,6 @@ tests_started=0
 
     echo "DEBUG: Processing line: $line" >&2  # Debug
 
-    # line startswith square bracket ([),
-    # extract testName from this line
     if [[ $line =~ ^\[ ]]
     then
         test_name_regexp='^\[ ([A-Za-z ]+) \], ([0-9]+)\.\.([0-9]+) ([a-zA-Z]+)'
@@ -44,16 +40,13 @@ tests_started=0
         continue
     fi
 
-    # line containing dash separator
     if [[ $line =~ ^-+ ]]
     then
-        # first separator: tests started
         if [ $tests_started -eq 0 ]
         then
             tests_started=1
             echo "    \"$test_cases_name\": ["
         else
-            # second separator: tests finished
             tests_started=0
             echo "    ],"
         fi
@@ -65,9 +58,6 @@ tests_started=0
               # Normalize spaces in the line
               line=$(echo "$line" | tr -s ' ')
               test_regex='^(not ok|ok)[[:space:]]+([0-9]+)[[:space:]]+(.*)[[:space:]]*,[[:space:]]*([0-9]+ms)$'
-              echo "DEBUG: Test line (normalized): $line" >&2
-              echo "DEBUG: Regex: $test_regex" >&2
-              echo "DEBUG: Hex representation of line: $(echo -n "$line" | xxd -p)" >&2
               if [[ $line =~ $test_regex ]]
               then
                   status=${BASH_REMATCH[1]}
@@ -80,12 +70,7 @@ tests_started=0
                   else
                       status=false
                   fi
-                  echo "        {"
-                  echo "            \"name\": \"$name\","
-                  echo "            \"status\": $status,"
-                  echo "            \"duration\": \"$duration\""
 
-                  # append comma to the end if it's not the last test
                   if [ $id -eq $last_test_id ]
                   then
                       echo "        }"
@@ -93,8 +78,6 @@ tests_started=0
                       echo "        },"
                   fi
               else
-                  echo "DEBUG: Line does not match regex after normalization" >&2
-                  echo "Invalid format in test line: $line" 1>&2
                   exit 1
               fi
               continue
@@ -119,8 +102,6 @@ tests_started=0
         echo "    }"
         echo "}"
 
-        # tests all finished, we also got the summary
-        # we can now break the loop
         break
 
     else
