@@ -3,17 +3,17 @@
 set -o pipefail
 set -e
 
-echo "DEBUG: Script started" >&2
+printf "DEBUG: Script started\n"
 
 if [ $# -lt 1 ]; then
-    echo "Usage: ./task2.sh /path/to/output.txt" >&2
+    printf "Usage: ./task2.sh /path/to/output.txt\n"
     exit 0
 fi
 
 file=$1
 
-if [ ! -f $file ]; then
-    echo "File $file doesn't exist" >&2
+if [ ! -f "$file" ]; then
+    printf "File $file doesn't exist\n"
     exit 1
 fi
 
@@ -21,11 +21,11 @@ path=$(dirname "$file")
 
 tests_started=0
 
-echo "Processing file: $file" >&2
+printf "Processing file: %s\n" "$file"
 
 (cat "$file"; echo;) | while read -r line; do
 
-    echo "DEBUG: Processing line: $line" >&2
+    printf "DEBUG: Processing line: %s\n" "$line"
 
     if [[ $line =~ ^\[ ]]; then
         test_name_regexp='^\[ ([A-Za-z ]+) \], ([0-9]+)\.\.([0-9]+) ([a-zA-Z]+)'
@@ -34,11 +34,11 @@ echo "Processing file: $file" >&2
             first_test_id=${BASH_REMATCH[2]}
             last_test_id=${BASH_REMATCH[3]}
             test_cases_name=${BASH_REMATCH[4]}
-            echo "DEBUG: Extracted test name: $test_name" >&2
-            echo "{"
-            echo "    \"testName\": \"$test_name\","
+            printf "DEBUG: Extracted test name: %s\n" "$test_name"
+            printf "{\n"
+            printf "    \"testName\": \"%s\",\n" "$test_name"
         else
-            echo "Invalid format in test name line: $line" >&2
+            printf "Invalid format in test name line: %s\n" "$line"
             exit 1
         fi
         continue
@@ -47,12 +47,12 @@ echo "Processing file: $file" >&2
     if [[ $line =~ ^-+ ]]; then
         if [ $tests_started -eq 0 ]; then
             tests_started=1
-            echo "DEBUG: Starting test case parsing." >&2
-            echo "    \"$test_cases_name\": ["
+            printf "DEBUG: Starting test case parsing.\n"
+            printf "    \"%s\": [\n" "$test_cases_name"
         else
             tests_started=0
-            echo "DEBUG: Finished test case parsing." >&2
-            echo "    ],"
+            printf "DEBUG: Finished test case parsing.\n"
+            printf "    ],\n"
         fi
         continue
     fi
@@ -60,8 +60,8 @@ echo "Processing file: $file" >&2
     if [ $tests_started -eq 1 ]; then
         line=$(echo "$line" | tr -s ' ')
         test_regex='^(not ok|ok)[[:space:]]+([0-9]+)[[:space:]]+(.*)[[:space:]]*,[[:space:]]*([0-9]+ms)$'
-        echo "DEBUG: Test line (normalized): $line" >&2
-        echo "DEBUG: Regex: $test_regex" >&2
+        printf "DEBUG: Test line (normalized): %s\n" "$line"
+        printf "DEBUG: Regex: %s\n" "$test_regex"
         if [[ $line =~ $test_regex ]]; then
             status=${BASH_REMATCH[1]}
             id=${BASH_REMATCH[2]}
@@ -72,20 +72,20 @@ echo "Processing file: $file" >&2
             else
                 status=false
             fi
-            echo "DEBUG: Processing test case: Name=\"$name\", Status=\"$status\", Duration=\"$duration\"" >&2
-            echo "        {"
-            echo "            \"name\": \"$name\","
-            echo "            \"status\": $status,"
-            echo "            \"duration\": \"$duration\""
+            printf "DEBUG: Processing test case: Name=\"%s\", Status=\"%s\", Duration=\"%s\"\n" "$name" "$status" "$duration"
+            printf "        {\n"
+            printf "            \"name\": \"%s\",\n" "$name"
+            printf "            \"status\": %s,\n" "$status"
+            printf "            \"duration\": \"%s\"\n" "$duration"
 
             if [ $id -eq $last_test_id ]; then
-                echo "        }"
+                printf "        }\n"
             else
-                echo "        },"
+                printf "        },\n"
             fi
         else
-            echo "DEBUG: Line does not match regex after normalization" >&2
-            echo "Invalid format in test line: $line" >&2
+            printf "DEBUG: Line does not match regex after normalization\n"
+            printf "Invalid format in test line: %s\n" "$line"
             exit 1
         fi
         continue
@@ -98,19 +98,19 @@ echo "Processing file: $file" >&2
         failed=${BASH_REMATCH[3]}
         rating=${BASH_REMATCH[4]}
         duration=${BASH_REMATCH[5]}
-        echo "DEBUG: Generated summary: Success=$success, Failed=$failed, Rating=$rating%, Duration=$duration" >&2
-        echo "    \"summary\": {"
-        echo "        \"success\": $success,"
-        echo "        \"failed\": $failed,"
-        echo "        \"rating\": $rating,"
-        echo "        \"duration\": \"$duration\""
-        echo "    }"
-        echo "}"
+        printf "DEBUG: Generated summary: Success=%s, Failed=%s, Rating=%s%%, Duration=%s\n" "$success" "$failed" "$rating" "$duration"
+        printf "    \"summary\": {\n"
+        printf "        \"success\": %s,\n" "$success"
+        printf "        \"failed\": %s,\n" "$failed"
+        printf "        \"rating\": %s,\n" "$rating"
+        printf "        \"duration\": \"%s\"\n" "$duration"
+        printf "    }\n"
+        printf "}\n"
         break
     else
-        echo "Invalid format in summary line: $line" >&2
+        printf "Invalid format in summary line: %s\n" "$line"
         exit 1
     fi
 done > "$path/output.json"
 
-echo "DEBUG: Script completed successfully" >&2
+printf "DEBUG: Script completed successfully\n"
