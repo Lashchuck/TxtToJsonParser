@@ -34,7 +34,7 @@ convert_to_json() {
             printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $NF
         }
         END { print "]" }
-        ' | sed ':a;N;$!ba;s/,\n]/\n]/')
+        ' | sed 's/,\"status\"/\"status\"/g' | sed ':a;N;$!ba;s/,\n]/\n]/')
 
     if [[ -z "$tests_json" ]]; then
         printf "Error: Unable to extract test details.\n" >&2
