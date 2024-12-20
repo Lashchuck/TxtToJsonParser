@@ -26,8 +26,9 @@ convert_to_json() {
         {
             status = ($1 == "ok") ? "true" : "false"
             name = $3
-            for (i = 4; i <= NF - 2; i++) name = name " " $i
-            gsub(/\(the same as above, bats way\)/, "", name)
+            # Remove numbers from the name
+            gsub(/[0-9]+/, "", name)
+            gsub(/\(the same as above, bats way\)/, "", name)  # Remove '(the same as above, bats way)'
             printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $(NF)
         }
         END { print "]" }
