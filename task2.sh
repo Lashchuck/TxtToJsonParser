@@ -13,7 +13,7 @@ fi
 file=$1
 
 if [ ! -f "$file" ]; then
-    printf "File $file doesn't exist\n"
+    printf "File %s doesn't exist\n" "$file"
     exit 1
 fi
 
@@ -23,8 +23,10 @@ tests_started=0
 
 printf "Processing file: %s\n" "$file"
 
-(cat "$file"; echo;) | while read -r line; do
+# Przechowuj JSON w zmiennej, aby zapisać czysty wynik do pliku
+output_json=""
 
+(cat "$file"; echo;) | while read -r line; do
     printf "DEBUG: Processing line: %s\n" "$line"
 
     if [[ $line =~ ^\[ ]]; then
@@ -35,8 +37,8 @@ printf "Processing file: %s\n" "$file"
             last_test_id=${BASH_REMATCH[3]}
             test_cases_name=${BASH_REMATCH[4]}
             printf "DEBUG: Extracted test name: %s\n" "$test_name"
-            printf "{\n"
-            printf "    \"testName\": \"%s\",\n" "$test_name"
+            output_json+="{\n"
+            output_json+="    \"testName\": \"$test_name\",\n"
         else
             printf "Invalid format in test name line: %s\n" "$line"
             exit 1
@@ -48,11 +50,11 @@ printf "Processing file: %s\n" "$file"
         if [ $tests_started -eq 0 ]; then
             tests_started=1
             printf "DEBUG: Starting test case parsing.\n"
-            printf "    \"%s\": [\n" "$test_cases_name"
+            output_json+="    \"tests\": [\n"
         else
             tests_started=0
             printf "DEBUG: Finished test case parsing.\n"
-            printf "    ],\n"
+            output_json+="    ],\n"
         fi
         continue
     fi
@@ -73,15 +75,14 @@ printf "Processing file: %s\n" "$file"
                 status=false
             fi
             printf "DEBUG: Processing test case: Name=\"%s\", Status=\"%s\", Duration=\"%s\"\n" "$name" "$status" "$duration"
-            printf "        {\n"
-            printf "            \"name\": \"%s\",\n" "$name"
-            printf "            \"status\": %s,\n" "$status"
-            printf "            \"duration\": \"%s\"\n" "$duration"
-
+            output_json+="        {\n"
+            output_json+="            \"name\": \"$name\",\n"
+            output_json+="            \"status\": $status,\n"
+            output_json+="            \"duration\": \"$duration\"\n"
             if [ $id -eq $last_test_id ]; then
-                printf "        }\n"
+                output_json+="        }\n"
             else
-                printf "        },\n"
+                output_json+="        },\n"
             fi
         else
             printf "DEBUG: Line does not match regex after normalization\n"
@@ -99,18 +100,19 @@ printf "Processing file: %s\n" "$file"
         rating=${BASH_REMATCH[4]}
         duration=${BASH_REMATCH[5]}
         printf "DEBUG: Generated summary: Success=%s, Failed=%s, Rating=%s%%, Duration=%s\n" "$success" "$failed" "$rating" "$duration"
-        printf "    \"summary\": {\n"
-        printf "        \"success\": %s,\n" "$success"
-        printf "        \"failed\": %s,\n" "$failed"
-        printf "        \"rating\": %s,\n" "$rating"
-        printf "        \"duration\": \"%s\"\n" "$duration"
-        printf "    }\n"
-        printf "}\n"
+        output_json+="    \"summary\": {\n"
+        output_json+="        \"success\": $success,\n"
+        output_json+="        \"failed\": $failed,\n"
+        output_json+="        \"rating\": $rating,\n"
+        output_json+="        \"duration\": \"$duration\"\n"
+        output_json+="    }\n"
+        output_json+="}\n"
         break
     else
         printf "Invalid format in summary line: %s\n" "$line"
         exit 1
     fi
-done > "$path/output.json"
+done
 
-printf "DEBUG: Script completed successfully\n"
+# Zapisz czysty JSON do pliku
+printf "%s" "$output_json" > "$path/output.json"
