@@ -26,10 +26,10 @@ convert_to_json() {
         {
             status = ($1 == "ok") ? "true" : "false"
             name = $3
-            # Remove numbers from the name
-            gsub(/[0-9]+/, "", name)
-            gsub(/\(the same as above, bats way\)/, "", name)
-            printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $(NF)
+            for (i = 4; i <= NF - 2; i++) name = name " " $i
+            name = name " " $(NF - 1) #
+            gsub(/, $/, "", name)
+            printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $NF
         }
         END { print "]" }
         ' | sed ':a;N;$!ba;s/,\n]/\n]/')
@@ -40,7 +40,7 @@ convert_to_json() {
     fi
 
     local summary_line
-    summary_line=$(grep -oP '^\d+ \(.+?tests passed, .+?tests failed.+?$' "$input_file")
+    summary_line=$(grep -oP '\d+ \(.+?tests passed, .+?tests failed.+?$' "$input_file")
     if [[ -z "$summary_line" ]]; then
         printf "Error: Unable to extract summary.\n" >&2
         return 1
