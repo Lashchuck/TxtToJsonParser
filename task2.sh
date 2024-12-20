@@ -27,9 +27,8 @@ convert_to_json() {
             status = ($1 == "ok") ? "true" : "false"
             name = $3
             for (i = 4; i <= NF - 2; i++) name = name " " $i
-            duration = $(NF)
             gsub(/\(the same as above, bats way\)/, "", name)
-            printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, duration
+            printf "{\"name\":\"%s\",\"status\":%s,\"duration\":\"%s\"},\n", name, status, $(NF)
         }
         END { print "]" }
         ' | sed ':a;N;$!ba;s/,\n]/\n]/')
@@ -57,7 +56,7 @@ convert_to_json() {
         return 1
     fi
 
-    # Tworzenie JSON
+    # Creating JSON
     {
         printf '{\n'
         printf '  "testName": "%s",\n' "$test_name"
