@@ -60,7 +60,7 @@ tests_started=0
         continue
     fi
 
-     i if [ $tests_started -eq 1 ]
+     if [ $tests_started -eq 1 ]
           then
               # Normalize spaces in the line
               line=$(echo "$line" | tr -s ' ')
