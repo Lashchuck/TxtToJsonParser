@@ -40,7 +40,6 @@
     "summary": {
         "success": 5,
         "failed": 2,
-        "total": 7,
         "rating": 71.43,
         "duration": "136ms"
     }
