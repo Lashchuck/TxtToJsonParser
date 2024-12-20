@@ -46,7 +46,7 @@ convert_to_json() {
     local success failed rating duration
     success=$(echo "$summary_line" | grep -oP '^\d+(?= \(of)')
     failed=$(echo "$summary_line" | grep -oP '(?<=, )\d+(?= tests failed)')
-    rating=$(echo "$summary_line" | grep -oP '\d+(\.\d+)?(?=%, rated as)')
+    rating=$(echo "$summary_line" | grep -oP '\d+(\.\d+)?(?=%)')
     duration=$(echo "$summary_line" | grep -oP '(?<=spent )\d+ms')
 
     if [[ -z "$success" || -z "$failed" || -z "$rating" || -z "$duration" ]]; then
